@@ -11,12 +11,13 @@ const performance = isNode ? { now: Date.now } : window.performance;
 
 	if (!isNode) {
 		await getGo();
-		check('webasm', global.runWasm);
+		await measure('internal loop', global.runInternalWasm);
+		await check('webasm', global.runWasm);
 	}
-	check('/\[([^\]]*)\]/g', str => str.match(REG1));
-	check('/\[([^\]]*?)\]/g', str => str.match(REG2));
-	check('mutable', forMutable);
-	check('immutable', forImmutable);
+	await check('/\[([^\]]*)\]/g', str => str.match(REG1));
+	await check('/\[([^\]]*?)\]/g', str => str.match(REG2));
+	await check('mutable', forMutable);
+	await check('immutable', forImmutable);
 })().catch(console.error);
 
 async function getGo() {
@@ -79,14 +80,21 @@ function forImmutable(str) {
 }
 
 async function check(title, f) {
-  const t0 = performance.now();
-  for (var i = 0; i < ITERATIONS; i++) {
-    const res = f(STRING);
-		if (PRINT) {
-			console.log(res);
+	return measure(title, async function () {
+		for (var i = 0; i < ITERATIONS; i++) {
+			const res = await f(STRING);
+			if (PRINT) {
+				console.log(res);
+			}
 		}
-  }
+	});
+}
+
+async function measure(title, f) {
+  const t0 = performance.now();
+	await f();
 	const t1 = performance.now();
 	const diff1 = Math.round(t1 - t0) / 1e3;
 	console.log(`Benchmark ${title} took ${diff1} seconds`);
+
 }
